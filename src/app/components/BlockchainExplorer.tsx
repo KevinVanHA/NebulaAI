@@ -1,4 +1,7 @@
-"use client";
+"use client"; // Ensure this is a Client Component
+
+// Add the dynamic flag at the top of the file
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
 import { Search, Send, Terminal } from "lucide-react";
@@ -22,15 +25,13 @@ import {
 } from "thirdweb";
 import { client } from "../client";
 
-export function BlockchainExplorer() {
+export default function BlockchainExplorer() {
   const searchParams = useSearchParams();
-  const chainId = searchParams.get("chainId");
-  const contractAddress = searchParams.get("searchTerm");
+  const chainId = searchParams.get("chainId") || "";
+  const contractAddress = searchParams.get("searchTerm") || "";
 
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>(
-    []
-  );
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
@@ -39,24 +40,24 @@ export function BlockchainExplorer() {
 
   useEffect(() => {
     const initSession = async () => {
+      if (!chainId || !contractAddress) return;
+
       try {
         const newSessionId = await createSession("Blockchain Explorer Session");
         setSessionId(newSessionId);
 
-        // Simulate typing animation
         setIsTyping(true);
 
         const contractDetails = await queryContract(
-          contractAddress!,
-          chainId!,
+          contractAddress,
+          chainId,
           newSessionId
         );
         setMessages([
           { role: "system", content: "Welcome to the Blockchain Explorer." },
           {
             role: "system",
-            content:
-              contractDetails || "No details available for this contract.",
+            content: contractDetails || "No details available for this contract.",
           },
         ]);
 
@@ -74,7 +75,7 @@ export function BlockchainExplorer() {
     };
 
     initSession();
-  }, [contractAddress, chainId]);
+  }, [chainId, contractAddress]);
 
   const handleSend = async () => {
     if (!input.trim() || !sessionId || !chainId || !contractAddress) return;
@@ -107,18 +108,25 @@ export function BlockchainExplorer() {
   };
 
   const handleExecute = async () => {
-    if (!account?.address || !input.includes("execute")) return;
+    if (
+      !account?.address ||
+      !input.includes("execute") ||
+      !chainId ||
+      !contractAddress
+    )
+      return;
 
     const executeMessage = input.trim();
 
-    // Add the "execute" message to the chat
-    setMessages((prev) => [...prev, { role: "user", content: executeMessage }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: executeMessage },
+    ]);
     setInput("");
 
     try {
       setIsTyping(true);
 
-      // Execute the command with Nebula API
       const executeResponse = await executeCommand(
         executeMessage,
         account.address,
@@ -129,30 +137,26 @@ export function BlockchainExplorer() {
         sessionId
       );
 
-      // Check if the response contains actions and a transaction to sign
       const action = executeResponse.actions?.find(
         (a: { type: string; data: string }) => a.type === "sign_transaction"
       );
 
       if (action) {
-        const transactionData = JSON.parse(action.data); // Parse the transaction data
+        const transactionData = JSON.parse(action.data);
 
-        // Prepare the transaction using thirdweb's prepareTransaction
         const preparedTransaction = prepareTransaction({
           to: transactionData.to,
-          value: transactionData.value, // Value in hex
-          data: transactionData.data, // Encoded function call
-          chain: defineChain(transactionData.chainId), // Chain definition
-          client, // Pass the initialized Thirdweb client
+          value: transactionData.value || "0x0",
+          data: transactionData.data || "",
+          chain: defineChain(transactionData.chainId),
+          client,
         });
 
-        // Send and confirm the transaction using thirdweb
         const receipt = await sendAndConfirmTransaction({
           transaction: preparedTransaction,
           account,
         });
 
-        // Add the transaction receipt hash to the chat
         setMessages((prev) => [
           ...prev,
           {
@@ -163,10 +167,7 @@ export function BlockchainExplorer() {
       } else {
         setMessages((prev) => [
           ...prev,
-          {
-            role: "system",
-            content: "No transaction to sign in the response.",
-          },
+          { role: "system", content: "No transaction to sign in the response." },
         ]);
       }
 
@@ -186,7 +187,6 @@ export function BlockchainExplorer() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Left side - Chat interface */}
       <div className="flex flex-col flex-grow p-4">
         <div className="flex items-center mb-4">
           <Search className="w-6 h-6 text-gray-500 mr-2" />

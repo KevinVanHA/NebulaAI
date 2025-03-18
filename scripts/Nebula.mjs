@@ -1,5 +1,5 @@
 const API_BASE_URL = "https://nebula-api.thirdweb.com";
-const SECRET_KEY = "";
+const SECRET_KEY = "ViuaX-gqsBqPC1oDq25KcePeqFdGO1c-uVwKN6_HDEVMnEX4JdMlorrQruOGXgyamdgeWEYTGFDK0Sy87xNEDQ";
 
 // Utility function to make API requests
 async function apiRequest(endpoint, method, body = {}) {

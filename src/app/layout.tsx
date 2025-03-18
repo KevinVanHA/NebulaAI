@@ -8,9 +8,9 @@ import { Footer } from "./components/Footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "thirdweb SDK + Next starter",
+  title: "EAC BlockChain Explorer",
   description:
-    "Starter template for using thirdweb SDK with Next.js App router",
+    "Talk to the Blockchain like you're talking to an AI. Powered by EVil Alien Collection",
 };
 
 export default function RootLayout({
