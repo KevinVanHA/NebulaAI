@@ -33,7 +33,7 @@ async function createSession(title = "Smart Contract Explorer") {
 async function queryContract(contractAddress, chainId, sessionId) {
   // Dynamically create the message for the query
   const message = `
-    Give me the deatils of this contract and provide a structured list of all functions available in the smart contract deployed at address ${contractAddress} on chain ${chainId}. The response must strictly follow this format:
+    Give me the details of this contract and provide a structured list of all functions available in the smart contract deployed at address ${contractAddress} on chain ${chainId}. The response must strictly follow this format:
 
     ### Contract Details:
     - **Name:** <contractName>
