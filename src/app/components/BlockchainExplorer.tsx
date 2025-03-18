@@ -1,23 +1,18 @@
-"use client"; // Ensure this is a Client Component
+"use client";
 
-// Add the dynamic flag at the top of the file
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { Search, Send, Terminal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-
-// Import script to interact with Nebula API
 import {
   createSession,
   queryContract,
   handleUserMessage,
   executeCommand,
 } from "../../../scripts/Nebula.mjs";
-
 import { useActiveAccount } from "thirdweb/react";
-
 import {
   sendAndConfirmTransaction,
   prepareTransaction,
@@ -36,7 +31,7 @@ export default function BlockchainExplorer() {
   const [isTyping, setIsTyping] = useState(false);
 
   const account = useActiveAccount();
-  const walletAddress = account?.address; // Get the wallet address
+  const walletAddress = account?.address;
 
   useEffect(() => {
     const initSession = async () => {
@@ -44,15 +39,16 @@ export default function BlockchainExplorer() {
 
       try {
         const newSessionId = await createSession("Blockchain Explorer Session");
+        console.log("Session created:", newSessionId);
         setSessionId(newSessionId);
 
         setIsTyping(true);
-
         const contractDetails = await queryContract(
           contractAddress,
           chainId,
           newSessionId
         );
+        console.log("Contract details:", contractDetails);
         setMessages([
           { role: "system", content: "Welcome to the Blockchain Explorer." },
           {
@@ -60,7 +56,6 @@ export default function BlockchainExplorer() {
             content: contractDetails || "No details available for this contract.",
           },
         ]);
-
         setIsTyping(false);
       } catch (error) {
         console.error("Error creating session or querying contract:", error);
@@ -78,7 +73,11 @@ export default function BlockchainExplorer() {
   }, [chainId, contractAddress]);
 
   const handleSend = async () => {
-    if (!input.trim() || !sessionId || !chainId || !contractAddress) return;
+    console.log("handleSend triggered", { input, sessionId, chainId, contractAddress });
+    if (!input.trim() || !sessionId || !chainId || !contractAddress) {
+      console.log("Condition failed, exiting handleSend");
+      return;
+    }
 
     const userMessage = input.trim();
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
@@ -92,63 +91,55 @@ export default function BlockchainExplorer() {
         chainId,
         contractAddress
       );
+      console.log("handleUserMessage response:", response);
       setMessages((prev) => [...prev, { role: "system", content: response }]);
       setIsTyping(false);
     } catch (error) {
       console.error("Error handling user message:", error);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "system",
-          content: "Failed to process your query. Please try again.",
-        },
+        { role: "system", content: "Failed to process your query. Please try again." },
       ]);
       setIsTyping(false);
     }
   };
 
   const handleExecute = async () => {
-    if (
-      !account?.address ||
-      !input.includes("execute") ||
-      !chainId ||
-      !contractAddress
-    )
+    console.log("handleExecute triggered", { account, input, chainId, contractAddress });
+    if (!account?.address || !input.includes("execute") || !chainId || !contractAddress) {
+      console.log("Condition failed, exiting handleExecute");
       return;
+    }
 
     const executeMessage = input.trim();
-
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: executeMessage },
-    ]);
+    setMessages((prev) => [...prev, { role: "user", content: executeMessage }]);
     setInput("");
 
     try {
       setIsTyping(true);
-
       const executeResponse = await executeCommand(
         executeMessage,
         account.address,
-        "default-user", // Optional user ID
-        false, // Stream option
+        "default-user",
+        false,
         chainId,
         contractAddress,
         sessionId
       );
+      console.log("executeResponse:", executeResponse);
 
       const action = executeResponse.actions?.find(
         (a: { type: string; data: string }) => a.type === "sign_transaction"
       );
+      console.log("action:", action);
 
       if (action) {
         const transactionData = JSON.parse(action.data);
-
         const preparedTransaction = prepareTransaction({
           to: transactionData.to,
           value: transactionData.value || "0x0",
           data: transactionData.data || "",
-          chain: defineChain(transactionData.chainId),
+          chain: defineChain(Number(transactionData.chainId)),
           client,
         });
 
@@ -156,6 +147,7 @@ export default function BlockchainExplorer() {
           transaction: preparedTransaction,
           account,
         });
+        console.log("Transaction receipt:", receipt);
 
         setMessages((prev) => [
           ...prev,
@@ -170,77 +162,94 @@ export default function BlockchainExplorer() {
           { role: "system", content: "No transaction to sign in the response." },
         ]);
       }
-
       setIsTyping(false);
     } catch (error) {
       console.error("Error executing transaction:", error);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "system",
-          content: "Failed to execute the command. Please try again.",
-        },
+        { role: "system", content: "Failed to execute the command. Please try again." },
       ]);
       setIsTyping(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      console.log("Enter key pressed");
+      handleSend();
+    }
+  };
+
   return (
-    <div className="flex max-h-75vh bg-gray-100">
-      <div className="flex flex-col flex-grow p-4">
-        <div className="flex items-center mb-4">
-          <Search className="w-6 h-6 text-gray-500 mr-2" />
-          <h1 className="text-xl font-bold">Blockchain Explorer</h1>
+<div className="flex h-screen bg-eac-bg bg-cover bg-center bg-no-repeat p-6">
+        <div className="flex flex-col w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+          <Search className="w-6 h-6 mr-2" />
+          <h1 className="text-xl font-semibold">Blockchain Explorer</h1>
         </div>
-        <div className="flex-grow bg-white rounded-lg shadow-md p-4 mb-4 overflow-y-auto">
+
+        {/* Messages */}
+        <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`mb-2 ${
-                message.role === "user" ? "text-right" : "text-left"
-              }`}
+              className={`flex mb-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {message.role === "system" ? (
-                <div className="bg-gray-200 text-gray-800 rounded-lg p-2">
+                <div className="max-w-lg p-4 bg-white rounded-lg shadow-md text-gray-800">
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
               ) : (
-                <span className="inline-block bg-blue-500 text-white rounded-lg p-2">
+                <div className="max-w-lg p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-md">
                   {message.content}
-                </span>
+                </div>
               )}
             </div>
           ))}
           {isTyping && (
-            <div className="text-left mb-2">
-              <span className="inline-block p-2 rounded-lg bg-gray-200 text-gray-800 animate-pulse">
-                Typing...
-              </span>
+            <div className="flex justify-start mb-4">
+              <div className="p-4 bg-white rounded-lg shadow-md text-gray-500 flex items-center space-x-2">
+                <span className="animate-bounce inline-block w-2 h-2 bg-gray-400 rounded-full"></span>
+                <span className="animate-bounce inline-block w-2 h-2 bg-gray-400 rounded-full delay-100"></span>
+                <span className="animate-bounce inline-block w-2 h-2 bg-gray-400 rounded-full delay-200"></span>
+              </div>
             </div>
           )}
         </div>
-        <div className="flex">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question about this contract or execute a command..."
-            className="flex-grow p-2 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleSend}
-            className="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <Send className="w-6 h-6" />
-          </button>
-          {input.includes("execute") && (
+
+        {/* Input Area */}
+        <div className="p-4 bg-gray-100 border-t border-gray-200">
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a question or execute a command..."
+              className="flex-1 p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+            />
             <button
-              onClick={handleExecute}
-              className="ml-2 bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+              onClick={() => {
+                console.log("Send button clicked");
+                handleSend();
+              }}
+              className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
             >
-              <Terminal className="w-6 h-6" />
+              <Send className="w-5 h-5" />
             </button>
-          )}
+            {input.includes("execute") && (
+              <button
+                onClick={() => {
+                  console.log("Execute button clicked");
+                  handleExecute();
+                }}
+                className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              >
+                <Terminal className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
