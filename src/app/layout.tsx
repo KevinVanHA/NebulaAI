@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "EAC BlockChain Explorer",
   description:
-    "Talk to the Blockchain like you're talking to an AI. Powered by Evil Alien Collection",
+    "Talk to the Blockchain like you're talking to an AI. Powered by Evil Alien Collective",
 };
 
 export default function RootLayout({

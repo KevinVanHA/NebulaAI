@@ -186,7 +186,7 @@ export default function BlockchainExplorer() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex max-h-75vh bg-gray-100">
       <div className="flex flex-col flex-grow p-4">
         <div className="flex items-center mb-4">
           <Search className="w-6 h-6 text-gray-500 mr-2" />
